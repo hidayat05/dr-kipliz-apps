@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Dr Kipliz</string>
+    <string name="bot_name">DrKipliz</string>
+    <string name="bot_alias">OmKipz</string>
+    <string name="identity_id_test">us-east-1:cab2bf7f-5f4c-4f4d-8606-cb35bcd6445a</string>
+    <string name="cognito_region">us-east-1</string>
+    <string name="lex_region">us-east-1</string>
+    <string name="hint_input_message">Ketik pesan</string>
+</resources>
