@@ -72,7 +72,7 @@ class ChatRecyclerAdapter(private val context: Context, private var listData: Li
 
         override fun bind(messageEntity: MessageEntity) {
             messageText.text = messageEntity.message
-            userText.text = messageEntity.from
+            userText.text = context.getString(R.string.app_name)
             timeText.text = messageEntity.timeStamp
         }
     }

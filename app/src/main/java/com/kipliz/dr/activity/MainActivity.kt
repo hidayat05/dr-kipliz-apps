@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import android.view.KeyEvent
+import android.view.View
 import android.widget.Toast
 import com.amazonaws.auth.CognitoCredentialsProvider
 import com.amazonaws.mobileconnectors.lex.interactionkit.InteractionClient
@@ -31,6 +32,7 @@ import com.kipliz.dr.model.MainViewModel
 import kotlinx.android.synthetic.main.activity_main.botAnimations
 import kotlinx.android.synthetic.main.activity_main.etMessage
 import kotlinx.android.synthetic.main.activity_main.ivMicrophone
+import kotlinx.android.synthetic.main.activity_main.ivSend
 import kotlinx.android.synthetic.main.activity_main.recycler
 import kotlinx.android.synthetic.main.activity_main.voiceInterface
 import java.text.DateFormat
@@ -81,7 +83,7 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
     private fun init() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                setStateButtonVoice(false)
+                setStateButtonVoice(true)
             } else {
                 requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_RECORDING_PERMISSIONS_RESULT)
             }
@@ -89,6 +91,17 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
             setStateButtonVoice(true)
         }
 
+        ivMicrophone.setOnClickListener {
+            voiceView.visibility = if (voiceView.visibility == View.VISIBLE) {
+                View.GONE
+            } else {
+                View.VISIBLE
+            }
+        }
+
+        ivSend.setOnClickListener {
+            sendTextInput()
+        }
         etMessage.setOnKeyListener { _, keycode, keyEvent ->
             if (keyEvent.action == KeyEvent.ACTION_DOWN
                     && keycode == KeyEvent.KEYCODE_ENTER) {
@@ -126,9 +139,6 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_RECORDING_PERMISSIONS_RESULT) {
             if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(applicationContext,
-                        "ga iso nganggo speach", Toast.LENGTH_SHORT).show()
-
                 setStateButtonVoice(false)
             } else {
                 setStateButtonVoice(true)
@@ -211,11 +221,16 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
     }
 
     override fun onResponse(response: Response?) {
-        // for response from lex response.getTextResponse()
-        // for input text response.getInputTranscript()
+        response?.let {
+            mainViewModel.addData(MessageEntity(0, response.inputTranscript, "Me", getCurrentTimeStamp()))
+            mainViewModel.addData(MessageEntity(0, response.textResponse, "tx", getCurrentTimeStamp()))
+        }
     }
 
     override fun onError(responseText: String?, e: java.lang.Exception?) {
-
+        inConversation = false
+        responseText?.let {
+            mainViewModel.addData(MessageEntity(0, it, "tx", getCurrentTimeStamp()))
+        }
     }
 }
