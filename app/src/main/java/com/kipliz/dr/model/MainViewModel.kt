@@ -25,10 +25,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addData(messageEntity: MessageEntity) {
-        AddAsyncTask(appDatabase).execute(messageEntity)
+        Execute(appDatabase).execute(messageEntity)
     }
 
-    private class AddAsyncTask internal constructor(private val db: AppDatabase) : AsyncTask<MessageEntity, Void, Void>() {
+    private class Execute internal constructor(private val db: AppDatabase) : AsyncTask<MessageEntity, Void, Void>() {
 
         override fun doInBackground(vararg params: MessageEntity): Void? {
             db.messageEntityDao().addMessageEntity(params[0])

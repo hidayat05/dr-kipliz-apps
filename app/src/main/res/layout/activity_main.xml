@@ -90,8 +90,11 @@
         android:orientation="vertical">
 
         <ImageView
+            android:id="@+id/botAnimations"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal|center_vertical"
+            android:layout_marginTop="4dp"
             tools:src="@tools:sample/avatars" />
 
     </LinearLayout>

@@ -21,16 +21,20 @@ import com.amazonaws.mobileconnectors.lex.interactionkit.listeners.InteractionLi
 import com.amazonaws.mobileconnectors.lex.interactionkit.ui.InteractiveVoiceView
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.lexrts.model.DialogState
+import com.bumptech.glide.Glide
+import com.kipliz.dr.R
 import com.kipliz.dr.R.drawable
 import com.kipliz.dr.R.layout
-import com.kipliz.dr.R.string
 import com.kipliz.dr.adapter.ChatRecyclerAdapter
 import com.kipliz.dr.entity.MessageEntity
 import com.kipliz.dr.model.MainViewModel
+import kotlinx.android.synthetic.main.activity_main.botAnimations
 import kotlinx.android.synthetic.main.activity_main.etMessage
 import kotlinx.android.synthetic.main.activity_main.ivMicrophone
 import kotlinx.android.synthetic.main.activity_main.recycler
 import kotlinx.android.synthetic.main.activity_main.voiceInterface
+import java.text.DateFormat
+import java.util.Date
 
 class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceListener {
 
@@ -64,6 +68,11 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
             }
         })
 
+        Glide.with(this)
+                .asGif()
+                .load(R.drawable.bot_selma)
+                .into(botAnimations)
+
         init()
         initLexSdk()
     }
@@ -92,22 +101,23 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
 
     private fun initLexSdk() {
         val credentialProvider = CognitoCredentialsProvider(
-                getString(string.identity_id_test),
-                Regions.fromName(getString(string.cognito_region)))
+                getString(R.string.identity_id_test),
+                Regions.fromName(getString(R.string.cognito_region)))
 
         interactionClient = InteractionClient(this,
                 credentialProvider,
-                Regions.fromName(getString(string.lex_region)),
-                getString(string.bot_name),
-                getString(string.bot_alias))
+                Regions.fromName(getString(R.string.lex_region)),
+                getString(R.string.bot_name),
+                getString(R.string.bot_alias))
         interactionClient.setInteractionListener(interactionListener)
         voiceView = voiceInterface as InteractiveVoiceView
+        voiceView.setInteractiveVoiceListener(this)
         voiceView.viewAdapter.apply {
             setCredentialProvider(credentialProvider)
             setInteractionConfig(InteractionConfig(
-                    getString(string.bot_name),
-                    getString(string.bot_alias)))
-            awsRegion = getString(string.lex_region)
+                    getString(R.string.bot_name),
+                    getString(R.string.bot_alias)))
+            awsRegion = getString(R.string.lex_region)
         }
 
     }
@@ -133,26 +143,34 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
         }
 
         override fun promptUserToRespond(response: Response,
-                                         continuation: LexServiceContinuation) {
-            readUserText(continuation)
+                                         continuation: LexServiceContinuation?) {
+            Log.e(TAG, "response from lex" + response.textResponse)
+
+            if (DialogState.ReadyForFulfillment.toString() != response.dialogState
+                    && DialogState.Fulfilled.toString() != response.dialogState) {
+                mainViewModel.addData(MessageEntity(0, response.textResponse, "tx", getCurrentTimeStamp()))
+                readUserText(continuation)
+            } else if (DialogState.Fulfilled.toString() == response.dialogState) {
+                inConversation = false
+                mainViewModel.addData(MessageEntity(0, response.textResponse, "tx", getCurrentTimeStamp()))
+            }
         }
 
         override fun onInteractionError(response: Response?, e: Exception) {
-            if (response != null) {
-                if (DialogState.Failed.toString() == response.dialogState) {
-                    inConversation = false
-                } else {
-
-                }
+            inConversation = if (response != null) {
+                DialogState.Failed.toString() != response.dialogState
             } else {
-                inConversation = false
+                false
             }
         }
     }
 
-    private fun readUserText(continuation: LexServiceContinuation) {
-        serviceContinuation = continuation
+    private fun readUserText(continuation: LexServiceContinuation?) {
+        continuation?.let {
+            serviceContinuation = it
+        }
         inConversation = true
+        etMessage.text.clear()
     }
 
     private fun setStateButtonVoice(isEnable: Boolean) {
@@ -164,23 +182,25 @@ class MainActivity : AppCompatActivity(), InteractiveVoiceView.InteractiveVoiceL
 
     private fun sendTextInput() {
         val text = etMessage.text.toString()
-        mainViewModel.addData(MessageEntity(0,text, "kipli", "" ))
-//        if (!inConversation) {
-//            Log.e(TAG, "-- new conversations")
-//            startConversations()
-//            // add data
-//            interactionClient.textInForAudioOut("", null)
-//            inConversation = true
-//        } else {
-//            // add data
-//            serviceContinuation.continueWithTextInForTextOut(text)
-//        }
+        if (!inConversation) {
+            Log.e(TAG, "-- new conversations")
+            mainViewModel.addData(MessageEntity(0, text, "Me", getCurrentTimeStamp()))
+            interactionClient.textInForTextOut(text, null)
+            startConversations()
+        } else {
+            mainViewModel.addData(MessageEntity(0, text, "tx", getCurrentTimeStamp()))
+            serviceContinuation.continueWithTextInForTextOut(text)
+        }
         etMessage.text.clear()
     }
 
     private fun startConversations() {
-        inConversation = false
+        inConversation = true
         etMessage.text.clear()
+    }
+
+    private fun getCurrentTimeStamp(): String {
+        return DateFormat.getDateTimeInstance().format(Date())
     }
 
     /**
